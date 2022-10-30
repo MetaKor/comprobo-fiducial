@@ -38,20 +38,9 @@ class object_detection():
 
         return corners
 
-    def corner_bounds(self, corners):
-        # find the four edges of the corners
-        x = self.find_x(corners) # find the x coordinates of each corner
-        y = self.find_y(corners) # find the y coordinates of each corner
-
-        # find the min and max of each
-        x_min = np.min(x)
-        x_max = np.max(x)
-        y_min = np.min(y)
-        y_max = np.max(y)
-
-        # create a list to store the x & y coordinates
-        x = [x_min, x_min, x_max, x_max]
-        y = [y_min, y_max, y_min, y_max]
+    def find_descriptors(self, image):
+        # TODO - complete this code
+        # find the descriptors of the corners of an image
 
     def find_x(self,corners):
         # takes a list of corners and returns a list of their x pixel coordinates
@@ -88,7 +77,7 @@ if __name__ == '__main__':
 
         for corner in corners:
             # draw a circle on the video frame where each corner is
-            cv2.circle(frame,(int(corner.pt[0]),int(corner.pt[1])), 10, (0,0,255), -1)
+            cv2.circle(frame,(int(corner.pt[0]),int(corner.pt[1])), 5, (0,0,255), -1)
         frame = np.array(cv2.resize(frame,
                                     (frame.shape[1]//1,
                                      frame.shape[0]//1)))
