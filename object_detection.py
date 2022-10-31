@@ -39,8 +39,45 @@ class object_detection():
         return corners
 
     def find_descriptors(self, image):
-        # TODO - complete this code
-        # find the descriptors of the corners of an image
+        # find the corners of an image
+        corners = self.find_corners(image)
+
+        # create a black and white copy of the image to find the gradient descriptors
+        image_bw = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+
+        # calculate the descriptors of each corner
+        _, descriptors = cv2.SIFT_create().compute(image_bw, corners)
+
+        return descriptors
+
+    def corner_match(self, original, new, new_corners):
+        # matches the corners based on descriptors between the new and old image
+        # original is a list of descriptors for the original image
+        # new is a list of descriptors for the new image
+        # new_corners is the corners of the new image
+
+        # match the descriptors with their second and first best match
+        # matches will be a list of tuples with each tuple containing the first and second
+        # best match for each descriptor
+        matches = cv2.BFMatcher().knnMatch(original, new, k=2)
+
+        # now assess that the matches are good enough
+        good_matches = []
+        # m is the first match, n is the second best match
+        for m, n in matches:
+            # make sure the distance to the closest match is sufficiently better than the second closest
+            # distance refers to the difference in descriptor and gradient not physical distance
+            if (m.distance < self.close_match_threshold*n.distance and
+                new_corners[m.trainIdx].response > self.corner_threshold):
+                good_matches.append((m.queryIdx, m.trainIdx))
+
+        # create a list of just the new image corner indices
+        corner_idx = [idx[1] for idx in good_matches]
+        # now find the corners that matched
+        new_corners = [new_corners[i] for i in corner_idx]
+
+        # return a list of the matching corners
+        return new_corners
 
     def find_x(self,corners):
         # takes a list of corners and returns a list of their x pixel coordinates
@@ -56,8 +93,29 @@ class object_detection():
 
         return y
 
+    def change_corner_threshold(self, value):
+        # allows us to change this threshold with a slider
+        self.corner_threshold = value/100000.0
+
+    def change_match_threshold(self, value):
+        # allows us to change this threshold with a slider
+        self.close_match_threshold = value/100.0
+
 if __name__ == '__main__':
     od = object_detection()
+
+    # create the sliders
+    cv2.namedWindow('UI')
+    cv2.createTrackbar('Corner Threshold',
+                       'UI',
+                       0,
+                       100,
+                       od.change_corner_threshold)
+    cv2.createTrackbar('Ratio Threshold',
+                       'UI',
+                       100,
+                       100,
+                       od.change_match_threshold)
 
     # define where to receive the video stream
     cap = cv2.VideoCapture(0)
@@ -66,18 +124,31 @@ if __name__ == '__main__':
     if not cap.isOpened():
         raise IOError("Cannot open webcam")
 
+    # find the descriptors and corners of the training image
+    # load the image
+    train_image = cv2.imread(od.image_dir)
+
+    train_corners = od.find_corners(train_image)
+
+    train_descriptors = od.find_descriptors(train_image)
+
+
     while True:
         # load the live video feed
         ret, frame = cap.read()
         if frame is None:
             continue
 
-        # find corners in the frame and draw a circle wherever they are
-        corners = od.find_corners(frame)
+        # find corners that match with training photo in the new frame
+        # and draw a circle wherever they are
+        new_corners = od.find_corners(frame)
+        new_descriptors = od.find_descriptors(frame)
+        good_corners = od.corner_match(train_descriptors, new_descriptors, new_corners)
 
-        for corner in corners:
+        for corner in good_corners:
             # draw a circle on the video frame where each corner is
             cv2.circle(frame,(int(corner.pt[0]),int(corner.pt[1])), 5, (0,0,255), -1)
+
         frame = np.array(cv2.resize(frame,
                                     (frame.shape[1]//1,
                                      frame.shape[0]//1)))
