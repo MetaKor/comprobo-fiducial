@@ -15,7 +15,7 @@ class object_detection():
     # all global variables & constants are defined here, stored in self
     def __init__(self):
         # define where the training image will be stored
-        self.image_dir = os.getcwd() + "/Images/train.jpg"
+        self.image_dir = os.getcwd() + "/Images/train.png"
         # define a variable to store the threshold at which we keep corners
         self.corner_threshold = 0.0
         # define a variable to check how distinct a corner is (no close second match)
@@ -95,7 +95,7 @@ class object_detection():
 
     def change_corner_threshold(self, value):
         # allows us to change this threshold with a slider
-        self.corner_threshold = value/100000.0
+        self.corner_threshold = value/1000.0
 
     def change_match_threshold(self, value):
         # allows us to change this threshold with a slider
@@ -142,8 +142,14 @@ if __name__ == '__main__':
         # find corners that match with training photo in the new frame
         # and draw a circle wherever they are
         new_corners = od.find_corners(frame)
-        new_descriptors = od.find_descriptors(frame)
-        good_corners = od.corner_match(train_descriptors, new_descriptors, new_corners)
+
+        # only progress if there are corners
+        if len(new_corners) > 1:
+            new_descriptors = od.find_descriptors(frame)
+            good_corners = od.corner_match(train_descriptors, new_descriptors, new_corners)
+        else:
+            # if there are not enough corners restart the loop
+            continue
 
         for corner in good_corners:
             # draw a circle on the video frame where each corner is
