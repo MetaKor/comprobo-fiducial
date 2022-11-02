@@ -8,6 +8,8 @@ import cv2
 # import numpy for a wide range of mathematical tools
 import numpy as np
 
+# K mean allows us to group clusters
+from sklearn.cluster import KMeans
 
 class object_detection():
 
@@ -101,6 +103,32 @@ class object_detection():
         # allows us to change this threshold with a slider
         self.close_match_threshold = value/100.0
 
+    def find_four_clusters(self, corners):
+        # this will only work if there are at least 6 corner coordinates
+        # find the x and y coordinates of the corners
+        x = self.find_x(corners)
+        y = self.find_y(corners)
+
+        # convert these lists into an array to feed into Kmean
+        points = np.transpose(np.array([x, y]))
+
+        # define the kmean equation
+        kmean = KMeans(init='random',
+                        n_clusters=4)
+
+        try:
+            # attempt to apply the kmean, searching for 4 clusters
+            clusters = kmean.fit(points)
+        except Exception:
+            # if the points are not dissimilar enough then it may throw an error
+            return None
+
+        # return the center coordinates of each cluster
+        return clusters.cluster_centers_
+
+
+
+
 if __name__ == '__main__':
     od = object_detection()
 
@@ -147,9 +175,17 @@ if __name__ == '__main__':
         if len(new_corners) > 1:
             new_descriptors = od.find_descriptors(frame)
             good_corners = od.corner_match(train_descriptors, new_descriptors, new_corners)
+            # if there are enough corners check for clusters
+            if len(good_corners) > 5:
+                cluster_coords = od.find_four_clusters(good_corners)
         else:
             # if there are not enough corners restart the loop
             continue
+
+        if cluster_coords is not None:
+            for cluster in cluster_coords:
+                # draw where the cluster coordinates are
+                cv2.circle(frame,(int(cluster[0]),int(cluster[1])), 5, (0,255,0), -1)
 
         for corner in good_corners:
             # draw a circle on the video frame where each corner is
