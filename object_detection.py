@@ -12,10 +12,43 @@ import numpy as np
 from sklearn.cluster import KMeans
 
 class object_detection():
+    """
+    A class used to match an image to a live video feed, identify the corners,
+    and to K-mean the corners.
+
+    ...
+
+    Methods
+    -------
+    load_screen()
+        Prints the keyboard commands for operating the Neato robot.
+    listen()
+        Reads keyboard input from the terminal, prints the last input,
+        and returns the input converted to uppercase.
+    run_loop()
+        Publishes the key presses and moves the robot based on some inputs.
+    turn_left()
+        Turns the neato counter clockwise.
+    turn_right()
+        Turns the neato clockwise.
+    neato_stop()
+        stops the neato from moving.
+    neato_forward()
+        Moves the neato forward.
+    neato_backward()
+        Moves the neato backward.
+    """
 
     # init initializes any code contained within it when an instance is created
     # all global variables & constants are defined here, stored in self
     def __init__(self):
+        """
+        Loads the image and stores the initial threshold values for corner filtering.
+
+        Args:
+
+        Returns:
+        """
         # define where the training image will be stored
         self.image_dir = os.getcwd() + "/Images/train.png"
         # define a variable to store the threshold at which we keep corners
@@ -25,6 +58,15 @@ class object_detection():
 
 
     def find_corners(self, image):
+        """
+        Finds all of the corners in an image.
+
+        Args:
+            image: an image object
+
+        Returns:
+            corners: a list of corner objects
+        """
         # takes an image and returns the corners within it
 
         # convert the image to black and white as we only care for gradient shift
@@ -41,6 +83,15 @@ class object_detection():
         return corners
 
     def find_descriptors(self, image):
+        """
+        Finds the gradient descriptors of an image.
+
+        Args:
+            image: an image object
+
+        Returns:
+            descriptors: a list of descriptor objects
+        """
         # find the corners of an image
         corners = self.find_corners(image)
 
@@ -53,6 +104,22 @@ class object_detection():
         return descriptors
 
     def corner_match(self, original, new, new_corners):
+        """
+        Finds the matching corners between two objects based on the
+        descriptors of both images.
+
+        Args:
+            original: the descriptors of the image that a new image is
+            being compared to.
+            new: the descriptors of the image that will assessed how it
+            matches to the original image.
+            new_corners: the corners of the new image that will be assessed
+
+        Returns:
+            new_corners: a list of corner objects that are the corners
+            of the new image now filtered for whether they match with
+            the original image.
+        """
         # matches the corners based on descriptors between the new and old image
         # original is a list of descriptors for the original image
         # new is a list of descriptors for the new image
@@ -82,6 +149,16 @@ class object_detection():
         return new_corners
 
     def find_x(self,corners):
+        """
+        Finds the x points from a list of corner objects.
+
+        Args:
+            corners: a list of corner objects
+
+        Returns:
+            x: a list of the x coordinates of each corner, corresponding
+            to the index of the corners
+        """
         # takes a list of corners and returns a list of their x pixel coordinates
         # pt is a tuple that stores the x,y position of each corner
         x = [corner.pt[0] for corner in corners]
@@ -89,6 +166,16 @@ class object_detection():
         return x
 
     def find_y(self, corners):
+        """
+        Finds the y points from a list of corner objects.
+
+        Args:
+            corners: a list of corner objects
+
+        Returns:
+            y: a list of the y coordinates of each corner, corresponding
+            to the index of the corners
+        """
         # take a list of corners and returns a list of their y pixel coordinates
         # pt is a tuple that stores the x,y position of each corner
         y = [corner.pt[1] for corner in corners]
@@ -96,14 +183,45 @@ class object_detection():
         return y
 
     def change_corner_threshold(self, value):
+        """
+        Changes the threshold at which to filter thresholds
+
+        Args:
+            value: threshold at which to discard corners
+
+        Returns:
+        """
         # allows us to change this threshold with a slider
         self.corner_threshold = value/1000.0
 
     def change_match_threshold(self, value):
+        """
+        Changes the threshold at which a corner is considered
+        a good match by how close the second match is. If a second
+        match is too close to the first match, this means that the
+        corner was not distinct.
+
+        Args:
+            value: threshold at which to discard corners
+
+        Returns:
+        """
         # allows us to change this threshold with a slider
         self.close_match_threshold = value/100.0
 
     def find_four_clusters(self, corners):
+        """
+        Takes a list of corner objects, performs a K-mean algorithm
+        on the x and y coordinates, and then returns the center points
+        of the four distinct clusters.
+
+        Args:
+            corners: a list of corner objects
+
+        Returns:
+            clusters.cluster_centers_: a list of tuples representing the
+            x and y coordinates of each K-mean cluster center.
+        """
         # this will only work if there are at least 6 corner coordinates
         # find the x and y coordinates of the corners
         x = self.find_x(corners)
